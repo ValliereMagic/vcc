@@ -112,28 +112,24 @@ impl Shows {
             return;
         };
 
-        if let Some(season_number) = season_number {
+        let update_field = |field: i64, name: &str, statement: &str| -> String {
             let mut statement = self
                 .connection
-                .prepare(update_season_number_query)
+                .prepare(statement)
                 .expect("Unable to prepare season number update query.");
             statement
-                .bind::<&[(_, sqlite::Value)]>(&[(1, season_number.into()), (2, name.into())][..])
+                .bind::<&[(_, sqlite::Value)]>(&[(1, field.into()), (2, name.into())][..])
                 .expect("Unable to bind values to query.");
             while statement.next().expect("Error updating show.") != sqlite::State::Done {}
-            show.season_number = format!("{}", season_number);
+            format!("{}", field)
+        };
+
+        if let Some(season_number) = season_number {
+            show.season_number = update_field(season_number, name, update_season_number_query);
         }
 
         if let Some(episodes_seen) = episodes_seen {
-            let mut statement = self
-                .connection
-                .prepare(update_episodes_number_query)
-                .expect("Unable to prepare episode number update query.");
-            statement
-                .bind::<&[(_, sqlite::Value)]>(&[(1, episodes_seen.into()), (2, name.into())][..])
-                .expect("Unable to bind values to query.");
-            while statement.next().expect("Error updating show.") != sqlite::State::Done {}
-            show.episodes_seen = format!("{}", episodes_seen);
+            show.episodes_seen = update_field(episodes_seen, name, update_episodes_number_query);
         }
     }
 
