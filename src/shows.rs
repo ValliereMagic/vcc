@@ -7,15 +7,18 @@ pub struct Show<S> {
     pub episodes_seen: String,
 }
 
-impl Show<Rc<String>> {
-    pub fn new(name: String, season_number: String, episodes_seen: String) -> Show<Rc<String>> {
+pub type AdderShow = Show<String>;
+pub type DisplayShow = Show<Rc<String>>;
+
+impl DisplayShow {
+    pub fn new(name: String, season_number: String, episodes_seen: String) -> DisplayShow {
         Show {
             name: Rc::new(name),
             season_number,
             episodes_seen,
         }
     }
-    pub fn new_numeric(name: String, season_number: i64, episodes_seen: i64) -> Show<Rc<String>> {
+    pub fn new_numeric(name: String, season_number: i64, episodes_seen: i64) -> DisplayShow {
         Show::new(
             name,
             format!("{}", season_number),
@@ -24,7 +27,7 @@ impl Show<Rc<String>> {
     }
 }
 
-impl Show<String> {
+impl AdderShow {
     pub fn clear(&mut self) {
         self.name.clear();
         self.season_number.clear();
@@ -34,7 +37,7 @@ impl Show<String> {
 
 pub struct Shows {
     connection: sqlite::Connection,
-    shows: Vec<Show<Rc<String>>>,
+    shows: Vec<DisplayShow>,
 }
 
 impl Shows {
@@ -63,7 +66,7 @@ impl Shows {
         shows
     }
 
-    pub fn iter(&mut self) -> std::slice::IterMut<'_, Show<Rc<String>>> {
+    pub fn iter(&mut self) -> std::slice::IterMut<'_, DisplayShow> {
         self.shows.iter_mut()
     }
 
