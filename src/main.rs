@@ -1,6 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 mod shows;
+use std::rc::Rc;
+
 use shows::Show;
 use shows::Shows;
 
@@ -14,7 +16,7 @@ const TEXT_LABEL_WIDTH: f32 = 125f32;
 
 struct Vcc {
     shows: Shows,
-    adder: Show,
+    adder: Show<String>,
 }
 
 impl Vcc {
@@ -25,13 +27,14 @@ impl Vcc {
         }
     }
 
-    fn rows(&mut self, changes: &mut Vec<Box<dyn Fn(&mut Shows)>>, ui: &mut egui::Ui) {
-        let changer = |number: &str, show_name: String, updater: &mut dyn FnMut(i64, String)| {
-            let Ok(number) = number.parse::<i64>() else {
-                return;
+    fn rows(&mut self, changes: &mut Vec<Box<dyn FnOnce(&mut Shows)>>, ui: &mut egui::Ui) {
+        let changer =
+            |number: &str, show_name: Rc<String>, updater: &mut dyn FnMut(i64, Rc<String>)| {
+                let Ok(number) = number.parse::<i64>() else {
+                    return;
+                };
+                updater(number, show_name);
             };
-            updater(number, show_name);
-        };
 
         for show in self.shows.iter() {
             ui.horizontal(|ui| {
@@ -45,7 +48,7 @@ impl Vcc {
                 ui.separator();
 
                 ui.label("Name: ");
-                ui.label(&show.name);
+                ui.label(&*show.name);
 
                 ui.separator();
 
@@ -53,10 +56,10 @@ impl Vcc {
                     changer(
                         &show.season_number,
                         show.name.to_owned(),
-                        &mut |number: i64, name: String| {
+                        &mut |number: i64, name: Rc<String>| {
                             changes.push(Box::new(move |shows: &mut Shows| {
-                                shows.update(&name, Some(number - 1), None)
-                            }))
+                                shows.update(&name, Some(number - 1), None);
+                            }));
                         },
                     );
                 }
@@ -73,7 +76,7 @@ impl Vcc {
                     changer(
                         &show.season_number,
                         show.name.to_owned(),
-                        &mut |number: i64, name: String| {
+                        &mut |number: i64, name: Rc<String>| {
                             changes.push(Box::new(move |shows: &mut Shows| {
                                 shows.update(&name, Some(number), None);
                             }));
@@ -85,10 +88,10 @@ impl Vcc {
                     changer(
                         &show.season_number,
                         show.name.to_owned(),
-                        &mut |number: i64, name: String| {
+                        &mut |number: i64, name: Rc<String>| {
                             changes.push(Box::new(move |shows: &mut Shows| {
-                                shows.update(&name, Some(number + 1), None)
-                            }))
+                                shows.update(&name, Some(number + 1), None);
+                            }));
                         },
                     );
                 }
@@ -99,10 +102,10 @@ impl Vcc {
                     changer(
                         &show.episodes_seen,
                         show.name.to_owned(),
-                        &mut |number: i64, name: String| {
+                        &mut |number: i64, name: Rc<String>| {
                             changes.push(Box::new(move |shows: &mut Shows| {
-                                shows.update(&name, None, Some(number - 1))
-                            }))
+                                shows.update(&name, None, Some(number - 1));
+                            }));
                         },
                     );
                 }
@@ -119,7 +122,7 @@ impl Vcc {
                     changer(
                         &show.episodes_seen,
                         show.name.to_owned(),
-                        &mut |number: i64, name: String| {
+                        &mut |number: i64, name: Rc<String>| {
                             changes.push(Box::new(move |shows: &mut Shows| {
                                 shows.update(&name, None, Some(number));
                             }));
@@ -131,10 +134,10 @@ impl Vcc {
                     changer(
                         &show.episodes_seen,
                         show.name.to_owned(),
-                        &mut |number: i64, name: String| {
+                        &mut |number: i64, name: Rc<String>| {
                             changes.push(Box::new(move |shows: &mut Shows| {
-                                shows.update(&name, None, Some(number + 1))
-                            }))
+                                shows.update(&name, None, Some(number + 1));
+                            }));
                         },
                     );
                 }
@@ -143,7 +146,7 @@ impl Vcc {
         }
     }
 
-    fn add(&mut self, changes: &mut Vec<Box<dyn Fn(&mut Shows)>>, ui: &mut egui::Ui) {
+    fn add(&mut self, changes: &mut Vec<Box<dyn FnOnce(&mut Shows)>>, ui: &mut egui::Ui) {
         ui.label("Add new show");
         ui.horizontal(|ui| {
             let name_label = ui.label("Name: ");
@@ -185,8 +188,8 @@ impl Vcc {
             let owned_name = self.adder.name.to_owned();
             self.adder.clear();
             changes.push(Box::new(move |shows: &mut Shows| {
-                shows.add(&owned_name, season_number, episodes_seen);
-            }))
+                shows.add(owned_name, season_number, episodes_seen);
+            }));
         }
     }
 }
@@ -194,7 +197,7 @@ impl Vcc {
 impl eframe::App for Vcc {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            let mut changes: Vec<Box<dyn Fn(&mut Shows)>> = Vec::new();
+            let mut changes: Vec<Box<dyn FnOnce(&mut Shows)>> = Vec::new();
 
             self.rows(&mut changes, ui);
             self.add(&mut changes, ui);

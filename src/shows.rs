@@ -1,25 +1,30 @@
+use std::rc::Rc;
+
 #[derive(Default)]
-pub struct Show {
-    pub name: String,
+pub struct Show<S> {
+    pub name: S,
     pub season_number: String,
     pub episodes_seen: String,
 }
 
-impl Show {
-    pub fn new(name: String, season_number: String, episodes_seen: String) -> Show {
+impl Show<Rc<String>> {
+    pub fn new(name: String, season_number: String, episodes_seen: String) -> Show<Rc<String>> {
         Show {
-            name,
+            name: Rc::new(name),
             season_number,
             episodes_seen,
         }
     }
-    pub fn new_numeric(name: String, season_number: i64, episodes_seen: i64) -> Show {
+    pub fn new_numeric(name: String, season_number: i64, episodes_seen: i64) -> Show<Rc<String>> {
         Show::new(
             name,
             format!("{}", season_number),
             format!("{}", episodes_seen),
         )
     }
+}
+
+impl Show<String> {
     pub fn clear(&mut self) {
         self.name.clear();
         self.season_number.clear();
@@ -29,7 +34,7 @@ impl Show {
 
 pub struct Shows {
     connection: sqlite::Connection,
-    shows: Vec<Show>,
+    shows: Vec<Show<Rc<String>>>,
 }
 
 impl Shows {
@@ -58,11 +63,11 @@ impl Shows {
         shows
     }
 
-    pub fn iter(&mut self) -> std::slice::IterMut<'_, Show> {
+    pub fn iter(&mut self) -> std::slice::IterMut<'_, Show<Rc<String>>> {
         self.shows.iter_mut()
     }
 
-    pub fn add(&mut self, name: &str, season_number: i64, episodes_seen: i64) {
+    pub fn add(&mut self, name: String, season_number: i64, episodes_seen: i64) {
         let add_query = "INSERT INTO Shows(name, season_number, episodes_seen) VALUES (?, ?, ?)";
         let mut statement = self
             .connection
@@ -71,7 +76,7 @@ impl Shows {
         statement
             .bind::<&[(_, sqlite::Value)]>(
                 &[
-                    (1, name.into()),
+                    (1, name.to_owned().into()),
                     (2, season_number.into()),
                     (3, episodes_seen.into()),
                 ][..],
@@ -79,17 +84,14 @@ impl Shows {
             .expect("Unable to bind added values to query.");
         while statement.next().expect("Error adding show.") != sqlite::State::Done {}
 
-        self.shows.push(Show::new_numeric(
-            name.to_owned(),
-            season_number,
-            episodes_seen,
-        ));
+        self.shows
+            .push(Show::new_numeric(name, season_number, episodes_seen));
     }
 
     pub fn remove(&mut self, name: &str) {
         let remove_query = "DELETE from Shows WHERE name = ?";
 
-        let Some(show_idx) = self.shows.iter().position(|x| x.name == name) else {
+        let Some(show_idx) = self.shows.iter().position(|x| *x.name == name) else {
             return;
         };
 
@@ -108,7 +110,7 @@ impl Shows {
         let update_season_number_query = "UPDATE Shows SET season_number = ? WHERE name = ?";
         let update_episodes_number_query = "UPDATE Shows SET episodes_seen = ? WHERE name = ?";
 
-        let Some(show) = self.shows.iter_mut().find(|show| show.name == name) else {
+        let Some(show) = self.shows.iter_mut().find(|show| *show.name == name) else {
             return;
         };
 
