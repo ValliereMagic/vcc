@@ -3,7 +3,7 @@ use crate::{
     shows_db::ShowsDb,
 };
 
-use std::{collections::HashSet, str};
+use std::{collections::HashMap, str};
 use trie_rs::TrieBuilder;
 
 #[derive(Copy, Clone, PartialEq)]
@@ -48,40 +48,41 @@ impl ShowsView {
     }
 
     fn recalculate_ui_shows(&mut self) {
-        // Categorical
-        if self.current_category == UiShowCategory::All {
-            self.ui_shows = self.categorized_shows.iter().flatten().cloned().collect();
-        } else {
-            self.ui_shows = self.categorized_shows[self.current_category as usize]
-                .iter()
-                .cloned()
-                .collect();
-        }
+        self.ui_shows = match (self.current_category, self.search_term.is_empty()) {
+            (UiShowCategory::All, true) => {
+                self.categorized_shows.iter().flatten().cloned().collect()
+            }
+            (_, false) => {
+                let mut trie_builder = TrieBuilder::new();
+                let mut case_map = HashMap::new();
 
-        if self.search_term.is_empty() {
-            return;
-        }
+                match self.current_category {
+                    UiShowCategory::All => Box::new(self.categorized_shows.iter().flatten())
+                        as Box<dyn Iterator<Item = &DisplayShow>>,
+                    _ => Box::new(self.categorized_shows[self.current_category as usize].iter())
+                        as Box<dyn Iterator<Item = &DisplayShow>>,
+                }
+                .for_each(|show| {
+                    trie_builder.push(show.name.to_lowercase());
+                    case_map.insert(show.name.to_lowercase(), &show.name);
+                });
 
-        // Filter by search term
-        let mut trie_builder = TrieBuilder::new();
+                let trie = trie_builder.build();
+                let mut show = DisplayShow::default();
+                trie.predictive_search(self.search_term.to_lowercase())
+                    .into_iter()
+                    .filter_map(|u8_rep| {
+                        show.name = case_map[str::from_utf8(&u8_rep).unwrap()].to_owned();
 
-        for show in self.ui_shows.iter() {
-            trie_builder.push(show.name.to_lowercase());
-        }
-
-        let trie = trie_builder.build();
-
-        let results = trie
-            .predictive_search(self.search_term.to_lowercase())
-            .into_iter()
-            .map(|u8s| str::from_utf8(&u8s).unwrap().to_owned())
-            .collect::<HashSet<String>>();
-
-        self.ui_shows = self
-            .ui_shows
-            .drain(..)
-            .filter(|show| results.contains(&show.name.to_lowercase()))
-            .collect();
+                        match self.find_categorized_show(&show) {
+                            None => None,
+                            Some(show) => Some(show.1.to_owned()),
+                        }
+                    })
+                    .collect()
+            }
+            (_, true) => self.categorized_shows[self.current_category as usize].to_owned(),
+        };
     }
 
     pub fn search(&mut self) {
@@ -121,8 +122,6 @@ impl ShowsView {
     }
 
     fn find_categorized_show<'a>(&'a self, show: &DisplayShow) -> Option<(usize, &DisplayShow)> {
-        let mut categorized = None;
-
         let show_finder = |shows: &'a Vec<DisplayShow>| -> Option<(usize, &'a DisplayShow)> {
             match shows.binary_search(&show) {
                 Ok(idx) => Some((idx, &shows[idx])),
@@ -130,18 +129,20 @@ impl ShowsView {
             }
         };
 
-        if self.current_category == UiShowCategory::All {
-            // The show could be in any of the 3 categories
-            for shows in self.categorized_shows.iter() {
-                categorized = show_finder(shows);
+        match self.current_category {
+            UiShowCategory::All => {
+                // The show could be in any of the 3 categories
+                let mut categorized = None;
+                for shows in self.categorized_shows.iter() {
+                    categorized = show_finder(shows);
 
-                if categorized.is_some() {
-                    break;
+                    if categorized.is_some() {
+                        break;
+                    }
                 }
+                categorized
             }
-            categorized
-        } else {
-            show_finder(&self.categorized_shows[self.current_category as usize])
+            _ => show_finder(&self.categorized_shows[self.current_category as usize]),
         }
     }
 
