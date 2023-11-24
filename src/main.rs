@@ -1,10 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-mod shows;
-use std::rc::Rc;
+mod show;
+mod shows_db;
+mod shows_view;
+use std::i64;
 
-use shows::AdderShow;
-use shows::Shows;
+use show::AdderShow;
+use shows_view::ShowsView;
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
@@ -14,9 +16,9 @@ fn main() -> eframe::Result<()> {
 const NUMBER_LABEL_WIDTH: f32 = 40f32;
 const TEXT_LABEL_WIDTH: f32 = 125f32;
 
-type AccumulatedModifications = Vec<Box<dyn FnOnce(&mut Shows)>>;
+type AccumulatedModifications = Vec<Box<dyn FnOnce(&mut ShowsView)>>;
 struct Vcc {
-    shows: Shows,
+    shows: ShowsView,
     adder: AdderShow,
     accumulated_modifications: AccumulatedModifications,
 }
@@ -24,29 +26,27 @@ struct Vcc {
 impl Vcc {
     fn new() -> Self {
         Vcc {
-            shows: Shows::new(),
+            shows: ShowsView::new(),
             adder: Default::default(),
             accumulated_modifications: Default::default(),
         }
     }
 
     fn rows(&mut self, ui: &mut egui::Ui) {
-        let changer =
-            |number: &str, show_name: Rc<String>, updater: &mut dyn FnMut(i64, Rc<String>)| {
-                let Ok(number) = number.parse::<i64>() else {
-                    return;
-                };
-                updater(number, show_name);
+        let changer = |show_field: &mut String, updater: &mut dyn FnMut(i64) -> i64| -> bool {
+            let Ok(number) = show_field.parse::<i64>() else {
+                return false;
             };
-
+            *show_field = format!("{}", updater(number));
+            true
+        };
         let modifications = &mut self.accumulated_modifications;
 
-        for show in self.shows.iter() {
+        for (index, show) in self.shows.iter() {
             ui.horizontal(|ui| {
                 if ui.button("Del").clicked() {
-                    let owned_name = show.name.to_owned();
-                    modifications.push(Box::new(move |shows: &mut Shows| {
-                        shows.remove(&owned_name);
+                    modifications.push(Box::new(move |shows: &mut ShowsView| {
+                        shows.remove(index);
                     }));
                 }
 
@@ -58,15 +58,11 @@ impl Vcc {
                 ui.separator();
 
                 if ui.button("-").clicked() {
-                    changer(
-                        &show.season_number,
-                        show.name.to_owned(),
-                        &mut |number: i64, name: Rc<String>| {
-                            modifications.push(Box::new(move |shows: &mut Shows| {
-                                shows.update(&name, Some(number - 1), None);
-                            }));
-                        },
-                    );
+                    if changer(&mut show.season_number, &mut |curr| curr - 1) {
+                        modifications.push(Box::new(move |shows: &mut ShowsView| {
+                            shows.update(index);
+                        }));
+                    }
                 }
 
                 let season_label = ui.label("Season Number: ");
@@ -78,41 +74,29 @@ impl Vcc {
                     .labelled_by(season_label.id);
 
                 if season_number_textbox.changed() {
-                    changer(
-                        &show.season_number,
-                        show.name.to_owned(),
-                        &mut |number: i64, name: Rc<String>| {
-                            modifications.push(Box::new(move |shows: &mut Shows| {
-                                shows.update(&name, Some(number), None);
-                            }));
-                        },
-                    );
+                    if changer(&mut show.season_number, &mut |curr| curr) {
+                        modifications.push(Box::new(move |shows: &mut ShowsView| {
+                            shows.update(index);
+                        }));
+                    }
                 }
 
                 if ui.button("+").clicked() {
-                    changer(
-                        &show.season_number,
-                        show.name.to_owned(),
-                        &mut |number: i64, name: Rc<String>| {
-                            modifications.push(Box::new(move |shows: &mut Shows| {
-                                shows.update(&name, Some(number + 1), None);
-                            }));
-                        },
-                    );
+                    if changer(&mut show.season_number, &mut |curr| curr + 1) {
+                        modifications.push(Box::new(move |shows: &mut ShowsView| {
+                            shows.update(index);
+                        }));
+                    }
                 }
 
                 ui.separator();
 
                 if ui.button("-").clicked() {
-                    changer(
-                        &show.episodes_seen,
-                        show.name.to_owned(),
-                        &mut |number: i64, name: Rc<String>| {
-                            modifications.push(Box::new(move |shows: &mut Shows| {
-                                shows.update(&name, None, Some(number - 1));
-                            }));
-                        },
-                    );
+                    if changer(&mut show.episodes_seen, &mut |curr| curr - 1) {
+                        modifications.push(Box::new(move |shows: &mut ShowsView| {
+                            shows.update(index);
+                        }));
+                    }
                 }
 
                 let episodes_seen_label = ui.label("Episodes Seen: ");
@@ -124,27 +108,19 @@ impl Vcc {
                     .labelled_by(episodes_seen_label.id);
 
                 if episodes_label_textbox.changed() {
-                    changer(
-                        &show.episodes_seen,
-                        show.name.to_owned(),
-                        &mut |number: i64, name: Rc<String>| {
-                            modifications.push(Box::new(move |shows: &mut Shows| {
-                                shows.update(&name, None, Some(number));
-                            }));
-                        },
-                    );
+                    if changer(&mut show.episodes_seen, &mut |curr| curr) {
+                        modifications.push(Box::new(move |shows: &mut ShowsView| {
+                            shows.update(index);
+                        }));
+                    }
                 }
 
                 if ui.button("+").clicked() {
-                    changer(
-                        &show.episodes_seen,
-                        show.name.to_owned(),
-                        &mut |number: i64, name: Rc<String>| {
-                            modifications.push(Box::new(move |shows: &mut Shows| {
-                                shows.update(&name, None, Some(number + 1));
-                            }));
-                        },
-                    );
+                    if changer(&mut show.episodes_seen, &mut |curr| curr + 1) {
+                        modifications.push(Box::new(move |shows: &mut ShowsView| {
+                            shows.update(index);
+                        }));
+                    }
                 }
             });
             ui.separator();
@@ -180,22 +156,24 @@ impl Vcc {
         });
         if ui.button("Add").clicked() {
             if self.adder.name.is_empty() {
+                self.adder.clear();
                 return;
             }
 
-            let (Ok(season_number), Ok(episodes_seen)) = (
+            let (Ok(_), Ok(_)) = (
                 self.adder.season_number.parse::<i64>(),
                 self.adder.episodes_seen.parse::<i64>(),
             ) else {
+                self.adder.clear();
                 return;
             };
 
-            let owned_name = self.adder.name.to_owned();
-            self.adder.clear();
+            let owned_adder = self.adder.to_owned();
             self.accumulated_modifications
-                .push(Box::new(move |shows: &mut Shows| {
-                    shows.add(owned_name, season_number, episodes_seen);
+                .push(Box::new(move |shows: &mut ShowsView| {
+                    shows.add(owned_adder);
                 }));
+            self.adder.clear();
         }
     }
 }
