@@ -56,11 +56,13 @@ impl ShowsView {
                 let mut trie_builder = TrieBuilder::new();
                 let mut case_map = HashMap::new();
 
+                type DisplayShowIter<'a> = Box<dyn Iterator<Item = &'a DisplayShow> + 'a>;
                 match self.current_category {
-                    UiShowCategory::All => Box::new(self.categorized_shows.iter().flatten())
-                        as Box<dyn Iterator<Item = &DisplayShow>>,
+                    UiShowCategory::All => {
+                        Box::new(self.categorized_shows.iter().flatten()) as DisplayShowIter
+                    }
                     _ => Box::new(self.categorized_shows[self.current_category as usize].iter())
-                        as Box<dyn Iterator<Item = &DisplayShow>>,
+                        as DisplayShowIter,
                 }
                 .for_each(|show| {
                     trie_builder.push(show.name.to_lowercase());
