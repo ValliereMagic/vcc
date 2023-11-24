@@ -23,4 +23,4 @@ codegen-units = 16
 rpath = false
 strip = "symbols"
 lto = "fat"
-target-cpu = "alderlake"
+target-cpu = "native"

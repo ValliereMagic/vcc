@@ -5,8 +5,8 @@ mod shows_db;
 mod shows_view;
 use std::i64;
 
-use show::AdderShow;
-use shows_view::ShowsView;
+use show::{AdderShow, ShowCategory};
+use shows_view::{ShowsView, UiShowCategory};
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
@@ -30,6 +30,75 @@ impl Vcc {
             adder: Default::default(),
             accumulated_modifications: Default::default(),
         }
+    }
+
+    fn search(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            let search_box_label = ui.label("Search: ");
+            let search_box = ui
+                .add(
+                    egui::TextEdit::singleline(self.shows.search_box())
+                        .desired_width(TEXT_LABEL_WIDTH),
+                )
+                .labelled_by(search_box_label.id);
+            if search_box.changed() {
+                self.shows.search();
+            }
+
+            ui.separator();
+
+            let category_label = ui.label("Category: ");
+
+            if ui
+                .add(egui::SelectableLabel::new(
+                    *self.shows.current_category() == UiShowCategory::Watching,
+                    "Watching",
+                ))
+                .labelled_by(category_label.id)
+                .clicked()
+            {
+                *self.shows.current_category() = UiShowCategory::Watching;
+                self.shows.update_category();
+            }
+
+            if ui
+                .add(egui::SelectableLabel::new(
+                    *self.shows.current_category() == UiShowCategory::PlanToWatch,
+                    "Plan to Watch",
+                ))
+                .labelled_by(category_label.id)
+                .clicked()
+            {
+                *self.shows.current_category() = UiShowCategory::PlanToWatch;
+                self.shows.update_category();
+            }
+
+            if ui
+                .add(egui::SelectableLabel::new(
+                    *self.shows.current_category() == UiShowCategory::Completed,
+                    "Completed",
+                ))
+                .labelled_by(category_label.id)
+                .clicked()
+            {
+                *self.shows.current_category() = UiShowCategory::Completed;
+                self.shows.update_category();
+            }
+
+            if ui
+                .add(egui::SelectableLabel::new(
+                    *self.shows.current_category() == UiShowCategory::All,
+                    "All",
+                ))
+                .labelled_by(category_label.id)
+                .clicked()
+            {
+                *self.shows.current_category() = UiShowCategory::All;
+                self.shows.update_category();
+            }
+        });
+
+        ui.separator();
     }
 
     fn rows(&mut self, ui: &mut egui::Ui) {
@@ -122,8 +191,41 @@ impl Vcc {
                         }));
                     }
                 }
+                let category_label = ui.label("Category: ");
+                egui::ComboBox::from_id_source(category_label.id)
+                    .selected_text(format!("{:?}", show.category))
+                    .show_ui(ui, |ui| {
+                        let watch = ui
+                            .selectable_value(
+                                &mut show.category,
+                                ShowCategory::Watching,
+                                "Watching",
+                            )
+                            .changed();
+                        let plan = ui
+                            .selectable_value(
+                                &mut show.category,
+                                ShowCategory::PlanToWatch,
+                                "PlanToWatch",
+                            )
+                            .changed();
+                        let complete = ui
+                            .selectable_value(
+                                &mut show.category,
+                                ShowCategory::Completed,
+                                "Completed",
+                            )
+                            .changed();
+
+                        if watch || plan || complete {
+                            modifications.push(Box::new(move |shows: &mut ShowsView| {
+                                shows.update(index);
+                            }));
+                        }
+                    });
+
+                ui.separator();
             });
-            ui.separator();
         }
     }
 
@@ -153,6 +255,28 @@ impl Vcc {
                     .desired_width(NUMBER_LABEL_WIDTH),
             )
             .labelled_by(episodes_label.id);
+
+            let category_label = ui.label("Category: ");
+            egui::ComboBox::from_id_source(category_label.id)
+                .selected_text(format!("{:?}", self.adder.category))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(
+                        &mut self.adder.category,
+                        ShowCategory::Watching,
+                        "Watching",
+                    );
+                    ui.selectable_value(
+                        &mut self.adder.category,
+                        ShowCategory::PlanToWatch,
+                        "PlanToWatch",
+                    );
+
+                    ui.selectable_value(
+                        &mut self.adder.category,
+                        ShowCategory::Completed,
+                        "Completed",
+                    );
+                });
         });
         if ui.button("Add").clicked() {
             if self.adder.name.is_empty() {
@@ -181,6 +305,7 @@ impl Vcc {
 impl eframe::App for Vcc {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            self.search(ui);
             self.rows(ui);
             self.add(ui);
 

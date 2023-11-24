@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, rc::Rc};
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum ShowCategory {
     Watching = 0,
     PlanToWatch = 1,

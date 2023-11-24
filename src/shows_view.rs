@@ -72,7 +72,7 @@ impl ShowsView {
         let trie = trie_builder.build();
 
         let results = trie
-            .common_prefix_search(&self.search_term)
+            .predictive_search(&self.search_term)
             .into_iter()
             .map(|u8s| str::from_utf8(&u8s).unwrap().to_owned())
             .collect::<HashSet<String>>();
@@ -84,14 +84,20 @@ impl ShowsView {
             .collect();
     }
 
-    pub fn search(&mut self, search_term: String) {
-        self.search_term = search_term;
+    pub fn search(&mut self) {
         self.recalculate_ui_shows();
     }
 
-    pub fn current_category(&mut self, category: UiShowCategory) {
-        self.current_category = category;
+    pub fn search_box(&mut self) -> &mut String {
+        &mut self.search_term
+    }
+
+    pub fn update_category(&mut self) {
         self.recalculate_ui_shows();
+    }
+
+    pub fn current_category(&mut self) -> &mut UiShowCategory {
+        &mut self.current_category
     }
 
     pub fn add(&mut self, show: AdderShow) {
