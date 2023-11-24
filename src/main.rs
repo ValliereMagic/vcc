@@ -223,9 +223,8 @@ impl Vcc {
                             }));
                         }
                     });
-
-                ui.separator();
             });
+            ui.separator();
         }
     }
 
@@ -240,7 +239,7 @@ impl Vcc {
 
             ui.separator();
 
-            let seasons_label = ui.label("Seasons seen: ");
+            let seasons_label = ui.label("Season Number: ");
             ui.add(
                 egui::TextEdit::singleline(&mut self.adder.season_number)
                     .desired_width(NUMBER_LABEL_WIDTH),

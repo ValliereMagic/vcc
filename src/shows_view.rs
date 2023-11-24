@@ -66,13 +66,13 @@ impl ShowsView {
         let mut trie_builder = TrieBuilder::new();
 
         for show in self.ui_shows.iter() {
-            trie_builder.push(&*show.name);
+            trie_builder.push(show.name.to_lowercase());
         }
 
         let trie = trie_builder.build();
 
         let results = trie
-            .predictive_search(&self.search_term)
+            .predictive_search(self.search_term.to_lowercase())
             .into_iter()
             .map(|u8s| str::from_utf8(&u8s).unwrap().to_owned())
             .collect::<HashSet<String>>();
@@ -80,7 +80,7 @@ impl ShowsView {
         self.ui_shows = self
             .ui_shows
             .drain(..)
-            .filter(|show| results.contains(show.name.as_str()))
+            .filter(|show| results.contains(&show.name.to_lowercase()))
             .collect();
     }
 
