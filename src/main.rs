@@ -111,86 +111,94 @@ impl Vcc {
         };
         let modifications = &mut self.accumulated_modifications;
 
-        for (index, show) in self.shows.iter() {
-            ui.horizontal(|ui| {
-                if ui.button("Del").clicked() {
-                    modifications.push(Box::new(move |shows: &mut ShowsView| {
-                        shows.remove(index);
-                    }));
-                }
-
-                ui.separator();
-
-                ui.label("Name: ");
-                ui.label(&*show.name);
-
-                ui.separator();
-
-                if ui.button("-").clicked() {
-                    if changer(&mut show.season_number, &mut |curr| curr - 1) {
+        egui::Grid::new("display_show_grid").show(ui, |ui| {
+            for (index, show) in self.shows.iter() {
+                ui.horizontal(|ui| {
+                    if ui.button("Del").clicked() {
                         modifications.push(Box::new(move |shows: &mut ShowsView| {
-                            shows.update(index);
+                            shows.remove(index);
                         }));
                     }
-                }
+                    ui.separator();
+                });
 
-                let season_label = ui.label("Season Number: ");
-                let season_number_textbox = ui
-                    .add(
-                        egui::TextEdit::singleline(&mut show.season_number)
-                            .desired_width(NUMBER_LABEL_WIDTH),
-                    )
-                    .labelled_by(season_label.id);
+                ui.horizontal(|ui| {
+                    ui.label("Name: ");
+                    ui.label(&*show.name);
+                });
 
-                if season_number_textbox.changed() {
-                    if changer(&mut show.season_number, &mut |curr| curr) {
-                        modifications.push(Box::new(move |shows: &mut ShowsView| {
-                            shows.update(index);
-                        }));
+                ui.horizontal(|ui| {
+                    ui.separator();
+
+                    if ui.button("-").clicked() {
+                        if changer(&mut show.season_number, &mut |curr| curr - 1) {
+                            modifications.push(Box::new(move |shows: &mut ShowsView| {
+                                shows.update(index);
+                            }));
+                        }
                     }
-                }
 
-                if ui.button("+").clicked() {
-                    if changer(&mut show.season_number, &mut |curr| curr + 1) {
-                        modifications.push(Box::new(move |shows: &mut ShowsView| {
-                            shows.update(index);
-                        }));
+                    let season_label = ui.label("Season Number: ");
+                    let season_number_textbox = ui
+                        .add(
+                            egui::TextEdit::singleline(&mut show.season_number)
+                                .desired_width(NUMBER_LABEL_WIDTH),
+                        )
+                        .labelled_by(season_label.id);
+
+                    if season_number_textbox.changed() {
+                        if changer(&mut show.season_number, &mut |curr| curr) {
+                            modifications.push(Box::new(move |shows: &mut ShowsView| {
+                                shows.update(index);
+                            }));
+                        }
                     }
-                }
 
-                ui.separator();
-
-                if ui.button("-").clicked() {
-                    if changer(&mut show.episodes_seen, &mut |curr| curr - 1) {
-                        modifications.push(Box::new(move |shows: &mut ShowsView| {
-                            shows.update(index);
-                        }));
+                    if ui.button("+").clicked() {
+                        if changer(&mut show.season_number, &mut |curr| curr + 1) {
+                            modifications.push(Box::new(move |shows: &mut ShowsView| {
+                                shows.update(index);
+                            }));
+                        }
                     }
-                }
 
-                let episodes_seen_label = ui.label("Episodes Seen: ");
-                let episodes_label_textbox = ui
-                    .add(
-                        egui::TextEdit::singleline(&mut show.episodes_seen)
-                            .desired_width(NUMBER_LABEL_WIDTH),
-                    )
-                    .labelled_by(episodes_seen_label.id);
-
-                if episodes_label_textbox.changed() {
-                    if changer(&mut show.episodes_seen, &mut |curr| curr) {
-                        modifications.push(Box::new(move |shows: &mut ShowsView| {
-                            shows.update(index);
-                        }));
+                    ui.separator();
+                });
+                ui.horizontal(|ui| {
+                    if ui.button("-").clicked() {
+                        if changer(&mut show.episodes_seen, &mut |curr| curr - 1) {
+                            modifications.push(Box::new(move |shows: &mut ShowsView| {
+                                shows.update(index);
+                            }));
+                        }
                     }
-                }
 
-                if ui.button("+").clicked() {
-                    if changer(&mut show.episodes_seen, &mut |curr| curr + 1) {
-                        modifications.push(Box::new(move |shows: &mut ShowsView| {
-                            shows.update(index);
-                        }));
+                    let episodes_seen_label = ui.label("Episodes Seen: ");
+                    let episodes_label_textbox = ui
+                        .add(
+                            egui::TextEdit::singleline(&mut show.episodes_seen)
+                                .desired_width(NUMBER_LABEL_WIDTH),
+                        )
+                        .labelled_by(episodes_seen_label.id);
+
+                    if episodes_label_textbox.changed() {
+                        if changer(&mut show.episodes_seen, &mut |curr| curr) {
+                            modifications.push(Box::new(move |shows: &mut ShowsView| {
+                                shows.update(index);
+                            }));
+                        }
                     }
-                }
+
+                    if ui.button("+").clicked() {
+                        if changer(&mut show.episodes_seen, &mut |curr| curr + 1) {
+                            modifications.push(Box::new(move |shows: &mut ShowsView| {
+                                shows.update(index);
+                            }));
+                        }
+                    }
+
+                    ui.separator();
+                });
                 let category_label = ui.label("Category: ");
                 egui::ComboBox::from_id_source(category_label.id)
                     .selected_text(format!("{:?}", show.category))
@@ -223,9 +231,10 @@ impl Vcc {
                             }));
                         }
                     });
-            });
-            ui.separator();
-        }
+                ui.end_row();
+            }
+        });
+        ui.separator();
     }
 
     fn add(&mut self, ui: &mut egui::Ui) {
@@ -254,6 +263,8 @@ impl Vcc {
                     .desired_width(NUMBER_LABEL_WIDTH),
             )
             .labelled_by(episodes_label.id);
+
+            ui.separator();
 
             let category_label = ui.label("Category: ");
             egui::ComboBox::from_id_source(category_label.id)
