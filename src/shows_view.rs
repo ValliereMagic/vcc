@@ -13,6 +13,18 @@ pub enum UiShowCategory {
     All = 3,
 }
 
+impl TryFrom<ShowCategory> for UiShowCategory {
+    type Error = ();
+
+    fn try_from(value: ShowCategory) -> Result<Self, Self::Error> {
+        match value {
+            ShowCategory::Watching => Ok(UiShowCategory::Watching),
+            ShowCategory::PlanToWatch => Ok(UiShowCategory::PlanToWatch),
+            ShowCategory::Completed => Ok(UiShowCategory::Completed),
+        }
+    }
+}
+
 const SHOWS_PER_PAGE: usize = 10;
 
 pub struct ShowsView {
@@ -60,20 +72,20 @@ impl ShowsView {
     pub fn iter(&mut self) -> impl Iterator<Item = (usize, &mut DisplayShow)> + '_ {
         // ui_shows is empty
         if self.ui_shows.is_empty() {
-            (0usize..).into_iter().zip(self.ui_shows.iter_mut())
-        } else {
-            let begin_inclusive = (self.page_number - 1) * SHOWS_PER_PAGE;
-            let end_exclusive = usize::min(self.page_number * SHOWS_PER_PAGE, self.ui_shows.len());
-
-            let offset_index = subslice_index::subslice_index(
-                &self.ui_shows[..],
-                &self.ui_shows[begin_inclusive..end_exclusive],
-            );
-
-            (offset_index..)
-                .into_iter()
-                .zip(self.ui_shows[begin_inclusive..end_exclusive].iter_mut())
+            return (0usize..).into_iter().zip(self.ui_shows.iter_mut());
         }
+
+        let begin_inclusive = (self.page_number - 1) * SHOWS_PER_PAGE;
+        let end_exclusive = usize::min(self.page_number * SHOWS_PER_PAGE, self.ui_shows.len());
+
+        let offset_index = subslice_index::subslice_index(
+            &self.ui_shows[..],
+            &self.ui_shows[begin_inclusive..end_exclusive],
+        );
+
+        (offset_index..)
+            .into_iter()
+            .zip(self.ui_shows[begin_inclusive..end_exclusive].iter_mut())
     }
 
     fn recalculate_ui_shows(&mut self) {
@@ -157,13 +169,13 @@ impl ShowsView {
             show.category,
         );
 
-        let index = match self.categorized_shows[show.category as usize].binary_search(&show) {
-            Ok(_) => return,
-            Err(idx) => idx,
-        };
-
         self.shows_db.add(&show);
 
+        let Err(index) = self.categorized_shows[show.category as usize].binary_search(&show) else {
+            return;
+        };
+
+        self.current_category = show.category.try_into().unwrap();
         self.categorized_shows[show.category as usize].insert(index, show);
 
         self.recalculate_ui_shows();
@@ -180,61 +192,51 @@ impl ShowsView {
         match self.current_category {
             UiShowCategory::All => {
                 // The show could be in any of the 3 categories
-                let mut categorized = None;
-                for shows in self.categorized_shows.iter() {
-                    categorized = show_finder(shows);
-
-                    if categorized.is_some() {
-                        break;
-                    }
-                }
-                categorized
+                self.categorized_shows
+                    .iter()
+                    .find_map(|shows| show_finder(shows))
             }
             _ => show_finder(&self.categorized_shows[self.current_category as usize]),
         }
     }
 
     pub fn update(&mut self, ui_index: usize) {
-        let show = &self.ui_shows[ui_index];
-        let mut recalculate = false;
+        let show = self.ui_shows[ui_index].to_owned();
 
-        if let Some((categorized_index, categorized_show)) = self.find_categorized_show(show) {
-            if categorized_show.category != show.category {
-                // Need to take the show out of the category it no longer
-                // belongs to and put it into the one it's changed to.
-                let new_index =
-                    match self.categorized_shows[show.category as usize].binary_search(&show) {
-                        Ok(_) => return,
-                        Err(idx) => idx,
-                    };
+        let Some((categorized_index, categorized_show)) = self.find_categorized_show(&show) else {
+            return;
+        };
 
-                self.categorized_shows[categorized_show.category as usize]
-                    .remove(categorized_index);
-                self.categorized_shows[show.category as usize].insert(new_index, show.to_owned());
+        self.shows_db.update(&show);
 
-                recalculate = true;
-            } else {
-                self.categorized_shows[categorized_show.category as usize][categorized_index] =
-                    show.to_owned();
-            }
-            self.shows_db.update(&show);
+        // Need to take the show out of the category it no longer
+        // belongs to and put it into the one it's changed to.
+        if categorized_show.category != show.category {
+            let Err(new_index) =
+                self.categorized_shows[show.category as usize].binary_search(&show)
+            else {
+                return;
+            };
 
-            if recalculate {
-                self.recalculate_ui_shows();
-            }
+            self.categorized_shows[categorized_show.category as usize].remove(categorized_index);
+            self.current_category = show.category.try_into().unwrap();
+            self.categorized_shows[show.category as usize].insert(new_index, show);
+
+            self.recalculate_ui_shows();
+            return;
         }
+        self.categorized_shows[categorized_show.category as usize][categorized_index] = show;
     }
 
     pub fn remove(&mut self, ui_index: usize) {
         let show = self.ui_shows.remove(ui_index);
 
-        let (categorized_index, show) = match self.find_categorized_show(&show) {
-            Some(categorized) => categorized,
-            None => return,
-        };
-
-        let show = self.categorized_shows[show.category as usize].remove(categorized_index);
-
-        self.shows_db.remove(&show);
+        match self.find_categorized_show(&show) {
+            Some((categorized_index, show)) => {
+                let show = self.categorized_shows[show.category as usize].remove(categorized_index);
+                self.shows_db.remove(&show);
+            }
+            None => (),
+        }
     }
 }
