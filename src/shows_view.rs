@@ -1,10 +1,9 @@
+use memchr::memmem;
+
 use crate::{
     show::{AdderShow, CategorizedShows, DisplayShow, ShowCategory},
     shows_db::ShowsDb,
 };
-
-use std::{collections::HashMap, str};
-use trie_rs::TrieBuilder;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum UiShowCategory {
@@ -83,8 +82,8 @@ impl ShowsView {
                 self.categorized_shows.iter().flatten().cloned().collect()
             }
             (_, false) => {
-                let mut trie_builder = TrieBuilder::new();
-                let mut case_map = HashMap::new();
+                let lower_search_term = self.search_term.to_lowercase();
+                let searcher = memmem::Finder::new(&lower_search_term);
 
                 type DisplayShowIter<'a> = Box<dyn Iterator<Item = &'a DisplayShow> + 'a>;
                 match self.current_category {
@@ -94,24 +93,13 @@ impl ShowsView {
                     _ => Box::new(self.categorized_shows[self.current_category as usize].iter())
                         as DisplayShowIter,
                 }
-                .for_each(|show| {
-                    trie_builder.push(show.name.to_lowercase());
-                    case_map.insert(show.name.to_lowercase(), &show.name);
-                });
-
-                let trie = trie_builder.build();
-                let mut show = DisplayShow::default();
-                trie.predictive_search(self.search_term.to_lowercase())
-                    .into_iter()
-                    .filter_map(|u8_rep| {
-                        show.name = case_map[str::from_utf8(&u8_rep).unwrap()].to_owned();
-
-                        match self.find_categorized_show(&show) {
-                            None => None,
-                            Some(show) => Some(show.1.to_owned()),
-                        }
-                    })
-                    .collect()
+                .filter_map(
+                    |show| match searcher.find(show.name.to_lowercase().as_bytes()) {
+                        Some(_) => Some(show.to_owned()),
+                        None => None,
+                    },
+                )
+                .collect()
             }
             (_, true) => self.categorized_shows[self.current_category as usize].to_owned(),
         };
