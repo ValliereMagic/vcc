@@ -2243,6 +2243,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6637bab7722d379c8b41ba849228d680cc12d0a45ba1fa2b48f2a30577a06731"
 
 [[package]]
+name = "subslice_index"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3a3b5568149c755397b365f81b2c1a384e445bd3b6384e2231b318d5e399688"
+
+[[package]]
 name = "syn"
 version = "1.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2450,11 +2456,12 @@ dependencies = [
 
 [[package]]
 name = "vcc"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "eframe",
  "egui",
  "sqlite",
+ "subslice_index",
  "trie-rs",
 ]
 

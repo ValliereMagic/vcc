@@ -26,7 +26,7 @@ impl TryFrom<i64> for ShowCategory {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct Show<S> {
     pub name: S,
     pub season_number: String,
@@ -35,7 +35,31 @@ pub struct Show<S> {
 }
 
 pub type AdderShow = Show<String>;
+const ADDER_DEFAULT_NUMBER: &str = "0";
+
+impl Default for AdderShow {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            season_number: ADDER_DEFAULT_NUMBER.to_owned(),
+            episodes_seen: ADDER_DEFAULT_NUMBER.to_owned(),
+            category: Default::default(),
+        }
+    }
+}
+
 pub type DisplayShow = Show<Rc<String>>;
+
+impl Default for DisplayShow {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            season_number: Default::default(),
+            episodes_seen: Default::default(),
+            category: Default::default(),
+        }
+    }
+}
 
 impl DisplayShow {
     pub fn new(
@@ -89,8 +113,8 @@ impl Eq for DisplayShow {}
 impl AdderShow {
     pub fn clear(&mut self) {
         self.name.clear();
-        self.season_number.clear();
-        self.episodes_seen.clear();
+        self.season_number = ADDER_DEFAULT_NUMBER.to_owned();
+        self.episodes_seen = ADDER_DEFAULT_NUMBER.to_owned();
         self.category = ShowCategory::PlanToWatch;
     }
 }

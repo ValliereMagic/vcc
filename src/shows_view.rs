@@ -14,15 +14,26 @@ pub enum UiShowCategory {
     All = 3,
 }
 
+const SHOWS_PER_PAGE: usize = 10;
+
 pub struct ShowsView {
     shows_db: ShowsDb,
     categorized_shows: CategorizedShows,
     ui_shows: Vec<DisplayShow>,
     search_term: String,
     current_category: UiShowCategory,
+    page_number: usize,
+    page_count: usize,
 }
 
 impl ShowsView {
+    fn calculate_num_pages(ui_shows_len: usize) -> usize {
+        usize::max(
+            ((ui_shows_len as f64 / SHOWS_PER_PAGE as f64).ceil()) as usize,
+            1,
+        )
+    }
+
     pub fn new() -> Self {
         let shows_db = ShowsDb::new();
 
@@ -33,18 +44,37 @@ impl ShowsView {
 
         // Present the user with the "Watching" category by default.
         let ui_shows = categorized_shows[ShowCategory::Watching as usize].to_owned();
+        let ui_shows_len = ui_shows.len();
+
         ShowsView {
             shows_db,
             categorized_shows,
             ui_shows,
             search_term: Default::default(),
             current_category: UiShowCategory::Watching,
+            page_number: 1,
+            page_count: ShowsView::calculate_num_pages(ui_shows_len),
         }
     }
 
     // Use the ui shows as buffers for user input, and rendering the ui
     pub fn iter(&mut self) -> impl Iterator<Item = (usize, &mut DisplayShow)> + '_ {
-        self.ui_shows.iter_mut().enumerate()
+        // ui_shows is empty
+        if self.ui_shows.is_empty() {
+            (0usize..).into_iter().zip(self.ui_shows.iter_mut())
+        } else {
+            let begin_inclusive = (self.page_number - 1) * SHOWS_PER_PAGE;
+            let end_exclusive = usize::min(self.page_number * SHOWS_PER_PAGE, self.ui_shows.len());
+
+            let offset_index = subslice_index::subslice_index(
+                &self.ui_shows[..],
+                &self.ui_shows[begin_inclusive..end_exclusive],
+            );
+
+            (offset_index..)
+                .into_iter()
+                .zip(self.ui_shows[begin_inclusive..end_exclusive].iter_mut())
+        }
     }
 
     fn recalculate_ui_shows(&mut self) {
@@ -85,6 +115,8 @@ impl ShowsView {
             }
             (_, true) => self.categorized_shows[self.current_category as usize].to_owned(),
         };
+        self.page_number = 1;
+        self.page_count = ShowsView::calculate_num_pages(self.ui_shows.len());
     }
 
     pub fn search(&mut self) {
@@ -101,6 +133,32 @@ impl ShowsView {
 
     pub fn current_category(&mut self) -> &mut UiShowCategory {
         &mut self.current_category
+    }
+
+    pub fn next_page(&mut self) {
+        // User has gone past the last page
+        if (self.page_number + 1) > self.page_count {
+            return;
+        } else {
+            self.page_number += 1
+        }
+    }
+
+    pub fn previous_page(&mut self) {
+        // User has gone before the first page
+        if (self.page_number - 1) < 1 {
+            return;
+        } else {
+            self.page_number -= 1
+        }
+    }
+
+    pub fn page(&self) -> usize {
+        self.page_number
+    }
+
+    pub fn page_count(&self) -> usize {
+        self.page_count
     }
 
     pub fn add(&mut self, show: AdderShow) {

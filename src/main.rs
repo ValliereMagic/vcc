@@ -32,7 +32,7 @@ impl Vcc {
         }
     }
 
-    fn search(&mut self, ui: &mut egui::Ui) {
+    fn search_page(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             let search_box_label = ui.label("Search: ");
             let search_box = ui
@@ -95,6 +95,24 @@ impl Vcc {
             {
                 *self.shows.current_category() = UiShowCategory::All;
                 self.shows.update_category();
+            }
+
+            ui.separator();
+
+            ui.label("Page Number: ");
+
+            if ui.button("-").clicked() {
+                self.shows.previous_page();
+            }
+
+            ui.label(format!(
+                "{} of {}",
+                self.shows.page(),
+                self.shows.page_count(),
+            ));
+
+            if ui.button("+").clicked() {
+                self.shows.next_page();
             }
         });
 
@@ -315,7 +333,7 @@ impl Vcc {
 impl eframe::App for Vcc {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.search(ui);
+            self.search_page(ui);
             self.rows(ui);
             self.add(ui);
 
