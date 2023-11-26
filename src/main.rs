@@ -130,7 +130,7 @@ impl Vcc {
         let modifications = &mut self.accumulated_modifications;
 
         egui::Grid::new("display_show_grid").show(ui, |ui| {
-            for (index, show) in self.shows.iter() {
+            for (index, show) in self.shows.iter_mut() {
                 ui.horizontal(|ui| {
                     if ui.button("Del").clicked() {
                         modifications.push(Box::new(move |shows: &mut ShowsView| {

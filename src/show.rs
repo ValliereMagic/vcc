@@ -35,31 +35,32 @@ pub struct Show<S> {
 }
 
 pub type AdderShow = Show<String>;
-const ADDER_DEFAULT_NUMBER: &str = "0";
+
+impl AdderShow {
+    fn default_numeric_string() -> String {
+        "0".to_owned()
+    }
+
+    pub fn clear(&mut self) {
+        self.name.clear();
+        self.season_number = AdderShow::default_numeric_string();
+        self.episodes_seen = AdderShow::default_numeric_string();
+        self.category = ShowCategory::PlanToWatch;
+    }
+}
 
 impl Default for AdderShow {
     fn default() -> Self {
         Self {
             name: Default::default(),
-            season_number: ADDER_DEFAULT_NUMBER.to_owned(),
-            episodes_seen: ADDER_DEFAULT_NUMBER.to_owned(),
+            season_number: AdderShow::default_numeric_string(),
+            episodes_seen: AdderShow::default_numeric_string(),
             category: Default::default(),
         }
     }
 }
 
 pub type DisplayShow = Show<Rc<String>>;
-
-impl Default for DisplayShow {
-    fn default() -> Self {
-        Self {
-            name: Default::default(),
-            season_number: Default::default(),
-            episodes_seen: Default::default(),
-            category: Default::default(),
-        }
-    }
-}
 
 impl DisplayShow {
     pub fn new(
@@ -75,6 +76,7 @@ impl DisplayShow {
             category,
         }
     }
+
     pub fn new_numeric(
         name: String,
         season_number: i64,
@@ -87,6 +89,17 @@ impl DisplayShow {
             format!("{}", episodes_seen),
             category,
         )
+    }
+}
+
+impl Default for DisplayShow {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            season_number: Default::default(),
+            episodes_seen: Default::default(),
+            category: Default::default(),
+        }
     }
 }
 
@@ -109,14 +122,5 @@ impl PartialEq for DisplayShow {
 }
 
 impl Eq for DisplayShow {}
-
-impl AdderShow {
-    pub fn clear(&mut self) {
-        self.name.clear();
-        self.season_number = ADDER_DEFAULT_NUMBER.to_owned();
-        self.episodes_seen = ADDER_DEFAULT_NUMBER.to_owned();
-        self.category = ShowCategory::PlanToWatch;
-    }
-}
 
 pub type CategorizedShows = [Vec<DisplayShow>; 3];

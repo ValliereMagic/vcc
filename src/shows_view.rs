@@ -1,3 +1,5 @@
+use std::{iter::Zip, ops::RangeFrom, slice::IterMut};
+
 use memchr::memmem;
 
 use crate::{
@@ -69,7 +71,7 @@ impl ShowsView {
     }
 
     // Use the ui shows as buffers for user input, and rendering the ui
-    pub fn iter(&mut self) -> impl Iterator<Item = (usize, &mut DisplayShow)> + '_ {
+    pub fn iter_mut(&mut self) -> Zip<RangeFrom<usize>, IterMut<'_, DisplayShow>> {
         // ui_shows is empty
         if self.ui_shows.is_empty() {
             return (0usize..).into_iter().zip(self.ui_shows.iter_mut());
