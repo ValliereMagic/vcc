@@ -141,18 +141,16 @@ impl ShowsView {
         // User has gone past the last page
         if (self.page_number + 1) > self.page_count {
             return;
-        } else {
-            self.page_number += 1
         }
+        self.page_number += 1
     }
 
     pub fn previous_page(&mut self) {
         // User has gone before the first page
         if (self.page_number - 1) < 1 {
             return;
-        } else {
-            self.page_number -= 1
         }
+        self.page_number -= 1
     }
 
     pub fn page(&self) -> usize {
