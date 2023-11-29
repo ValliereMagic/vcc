@@ -171,12 +171,13 @@ impl ShowsView {
 
         self.shows_db.add(&show);
 
-        let Err(index) = self.categorized_shows[show.category as usize].binary_search(&show) else {
+        let Err(insert_index) = self.categorized_shows[show.category as usize].binary_search(&show)
+        else {
             return;
         };
 
         self.current_category = show.category.try_into().unwrap();
-        self.categorized_shows[show.category as usize].insert(index, show);
+        self.categorized_shows[show.category as usize].insert(insert_index, show);
 
         self.recalculate_ui_shows();
     }
@@ -209,23 +210,21 @@ impl ShowsView {
 
         self.shows_db.update(&show);
 
-        // Need to take the show out of the category it no longer
-        // belongs to and put it into the one it's changed to.
-        if categorized_show.category != show.category {
-            let Err(new_index) =
-                self.categorized_shows[show.category as usize].binary_search(&show)
-            else {
-                return;
-            };
-
-            self.categorized_shows[categorized_show.category as usize].remove(categorized_index);
-            self.current_category = show.category.try_into().unwrap();
-            self.categorized_shows[show.category as usize].insert(new_index, show);
-
-            self.recalculate_ui_shows();
+        if categorized_show.category == show.category {
+            self.categorized_shows[categorized_show.category as usize][categorized_index] = show;
             return;
         }
-        self.categorized_shows[categorized_show.category as usize][categorized_index] = show;
+
+        let Err(new_index) = self.categorized_shows[show.category as usize].binary_search(&show)
+        else {
+            return;
+        };
+
+        self.categorized_shows[categorized_show.category as usize].remove(categorized_index);
+        self.current_category = show.category.try_into().unwrap();
+        self.categorized_shows[show.category as usize].insert(new_index, show);
+
+        self.recalculate_ui_shows();
     }
 
     pub fn remove(&mut self, ui_index: usize) {
