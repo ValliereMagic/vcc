@@ -1,17 +1,15 @@
 use std::{cmp::Ordering, rc::Rc};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Default)]
 pub enum ShowCategory {
     Watching = 0,
+    #[default]
     PlanToWatch = 1,
     Completed = 2,
 }
 
-impl Default for ShowCategory {
-    fn default() -> Self {
-        ShowCategory::PlanToWatch
-    }
-}
+
 
 impl TryFrom<i64> for ShowCategory {
     type Error = ();

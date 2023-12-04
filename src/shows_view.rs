@@ -74,7 +74,7 @@ impl ShowsView {
     pub fn iter_mut(&mut self) -> Zip<RangeFrom<usize>, IterMut<'_, DisplayShow>> {
         // ui_shows is empty
         if self.ui_shows.is_empty() {
-            return (0usize..).into_iter().zip(self.ui_shows.iter_mut());
+            return (0usize..).zip(self.ui_shows.iter_mut());
         }
 
         let begin_inclusive = (self.page_number - 1) * SHOWS_PER_PAGE;
@@ -85,9 +85,7 @@ impl ShowsView {
             &self.ui_shows[begin_inclusive..end_exclusive],
         );
 
-        (offset_index..)
-            .into_iter()
-            .zip(self.ui_shows[begin_inclusive..end_exclusive].iter_mut())
+        (offset_index..).zip(self.ui_shows[begin_inclusive..end_exclusive].iter_mut())
     }
 
     fn recalculate_ui_shows(&mut self) {
@@ -107,12 +105,11 @@ impl ShowsView {
                     _ => Box::new(self.categorized_shows[self.current_category as usize].iter())
                         as DisplayShowIter,
                 }
-                .filter_map(
-                    |show| match searcher.find(show.name.to_lowercase().as_bytes()) {
-                        Some(_) => Some(show.to_owned()),
-                        None => None,
-                    },
-                )
+                .filter_map(|show| {
+                    searcher
+                        .find(show.name.to_lowercase().as_bytes())
+                        .map(|_| show.to_owned())
+                })
                 .collect()
             }
             (_, true) => self.categorized_shows[self.current_category as usize].to_owned(),
@@ -184,7 +181,7 @@ impl ShowsView {
 
     fn find_categorized_show<'a>(&'a self, show: &DisplayShow) -> Option<(usize, &DisplayShow)> {
         let show_finder = |shows: &'a Vec<DisplayShow>| -> Option<(usize, &'a DisplayShow)> {
-            match shows.binary_search(&show) {
+            match shows.binary_search(show) {
                 Ok(idx) => Some((idx, &shows[idx])),
                 Err(_) => None,
             }
@@ -193,9 +190,7 @@ impl ShowsView {
         match self.current_category {
             UiShowCategory::All => {
                 // The show could be in any of the 3 categories
-                self.categorized_shows
-                    .iter()
-                    .find_map(|shows| show_finder(shows))
+                self.categorized_shows.iter().find_map(show_finder)
             }
             _ => show_finder(&self.categorized_shows[self.current_category as usize]),
         }
@@ -230,12 +225,9 @@ impl ShowsView {
     pub fn remove(&mut self, ui_index: usize) {
         let show = self.ui_shows.remove(ui_index);
 
-        match self.find_categorized_show(&show) {
-            Some((categorized_index, show)) => {
-                let show = self.categorized_shows[show.category as usize].remove(categorized_index);
-                self.shows_db.remove(&show);
-            }
-            None => (),
+        if let Some((categorized_index, show)) = self.find_categorized_show(&show) {
+            let show = self.categorized_shows[show.category as usize].remove(categorized_index);
+            self.shows_db.remove(&show);
         }
     }
 }

@@ -148,12 +148,12 @@ impl Vcc {
                 ui.horizontal(|ui| {
                     ui.separator();
 
-                    if ui.button("-").clicked() {
-                        if changer(&mut show.season_number, &mut |curr| curr - 1) {
-                            modifications.push(Box::new(move |shows: &mut ShowsView| {
-                                shows.update(index);
-                            }));
-                        }
+                    if ui.button("-").clicked()
+                        && changer(&mut show.season_number, &mut |curr| curr - 1)
+                    {
+                        modifications.push(Box::new(move |shows: &mut ShowsView| {
+                            shows.update(index);
+                        }));
                     }
 
                     let season_label = ui.label("Season Number: ");
@@ -164,31 +164,31 @@ impl Vcc {
                         )
                         .labelled_by(season_label.id);
 
-                    if season_number_textbox.changed() {
-                        if changer(&mut show.season_number, &mut |curr| curr) {
-                            modifications.push(Box::new(move |shows: &mut ShowsView| {
-                                shows.update(index);
-                            }));
-                        }
+                    if season_number_textbox.changed()
+                        && changer(&mut show.season_number, &mut |curr| curr)
+                    {
+                        modifications.push(Box::new(move |shows: &mut ShowsView| {
+                            shows.update(index);
+                        }));
                     }
 
-                    if ui.button("+").clicked() {
-                        if changer(&mut show.season_number, &mut |curr| curr + 1) {
-                            modifications.push(Box::new(move |shows: &mut ShowsView| {
-                                shows.update(index);
-                            }));
-                        }
+                    if ui.button("+").clicked()
+                        && changer(&mut show.season_number, &mut |curr| curr + 1)
+                    {
+                        modifications.push(Box::new(move |shows: &mut ShowsView| {
+                            shows.update(index);
+                        }));
                     }
 
                     ui.separator();
                 });
                 ui.horizontal(|ui| {
-                    if ui.button("-").clicked() {
-                        if changer(&mut show.episodes_seen, &mut |curr| curr - 1) {
-                            modifications.push(Box::new(move |shows: &mut ShowsView| {
-                                shows.update(index);
-                            }));
-                        }
+                    if ui.button("-").clicked()
+                        && changer(&mut show.episodes_seen, &mut |curr| curr - 1)
+                    {
+                        modifications.push(Box::new(move |shows: &mut ShowsView| {
+                            shows.update(index);
+                        }));
                     }
 
                     let episodes_seen_label = ui.label("Episodes Seen: ");
@@ -199,20 +199,20 @@ impl Vcc {
                         )
                         .labelled_by(episodes_seen_label.id);
 
-                    if episodes_label_textbox.changed() {
-                        if changer(&mut show.episodes_seen, &mut |curr| curr) {
-                            modifications.push(Box::new(move |shows: &mut ShowsView| {
-                                shows.update(index);
-                            }));
-                        }
+                    if episodes_label_textbox.changed()
+                        && changer(&mut show.episodes_seen, &mut |curr| curr)
+                    {
+                        modifications.push(Box::new(move |shows: &mut ShowsView| {
+                            shows.update(index);
+                        }));
                     }
 
-                    if ui.button("+").clicked() {
-                        if changer(&mut show.episodes_seen, &mut |curr| curr + 1) {
-                            modifications.push(Box::new(move |shows: &mut ShowsView| {
-                                shows.update(index);
-                            }));
-                        }
+                    if ui.button("+").clicked()
+                        && changer(&mut show.episodes_seen, &mut |curr| curr + 1)
+                    {
+                        modifications.push(Box::new(move |shows: &mut ShowsView| {
+                            shows.update(index);
+                        }));
                     }
 
                     ui.separator();
