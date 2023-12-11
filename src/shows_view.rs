@@ -15,14 +15,12 @@ pub enum UiShowCategory {
     All = 3,
 }
 
-impl TryFrom<ShowCategory> for UiShowCategory {
-    type Error = ();
-
-    fn try_from(value: ShowCategory) -> Result<Self, Self::Error> {
+impl From<ShowCategory> for UiShowCategory {
+    fn from(value: ShowCategory) -> Self {
         match value {
-            ShowCategory::Watching => Ok(UiShowCategory::Watching),
-            ShowCategory::PlanToWatch => Ok(UiShowCategory::PlanToWatch),
-            ShowCategory::Completed => Ok(UiShowCategory::Completed),
+            ShowCategory::Watching => UiShowCategory::Watching,
+            ShowCategory::PlanToWatch => UiShowCategory::PlanToWatch,
+            ShowCategory::Completed => UiShowCategory::Completed,
         }
     }
 }
@@ -173,7 +171,7 @@ impl ShowsView {
             return;
         };
 
-        self.current_category = show.category.try_into().unwrap();
+        self.current_category = show.category.into();
         self.categorized_shows[show.category as usize].insert(insert_index, show);
 
         self.recalculate_ui_shows();
@@ -216,7 +214,7 @@ impl ShowsView {
         };
 
         self.categorized_shows[categorized_show.category as usize].remove(categorized_index);
-        self.current_category = show.category.try_into().unwrap();
+        self.current_category = show.category.into();
         self.categorized_shows[show.category as usize].insert(new_index, show);
 
         self.recalculate_ui_shows();
