@@ -15,7 +15,6 @@ sqlite = "0.36"
 [profile.release]
 opt-level = 3
 debug = false
-split-debuginfo = '...'  # Platform-specific.
 debug-assertions = false
 overflow-checks = false
 panic = 'unwind'
@@ -24,3 +23,8 @@ codegen-units = 16
 rpath = false
 strip = "symbols"
 lto = "thin"
+
+[profile.instrumented_release]
+inherits = "release"
+debug = true
+strip = "none"
