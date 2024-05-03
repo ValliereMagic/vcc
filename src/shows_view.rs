@@ -164,12 +164,12 @@ impl ShowsView {
             show.category,
         );
 
-        self.shows_db.add(&show);
-
         let Err(insert_index) = self.categorized_shows[show.category as usize].binary_search(&show)
         else {
             return;
         };
+
+        self.shows_db.add(&show);
 
         self.current_category = show.category.into();
         self.categorized_shows[show.category as usize].insert(insert_index, show);

@@ -100,7 +100,7 @@ impl Default for DisplayShow {
 
 impl Ord for DisplayShow {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.name.cmp(&other.name)
+        self.name.to_lowercase().cmp(&other.name.to_lowercase())
     }
 }
 
@@ -112,7 +112,7 @@ impl PartialOrd for DisplayShow {
 
 impl PartialEq for DisplayShow {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
+        self.cmp(other).is_eq()
     }
 }
 
