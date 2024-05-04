@@ -169,6 +169,19 @@ impl ShowsView {
             return;
         };
 
+        // Make sure someone isn't adding a show that already exists.
+        if let Some((_, existing_show)) =
+            self.find_categorized_show(&show, Some(show.category as usize))
+        {
+            let existing_show = existing_show.to_owned();
+
+            self.current_category = UiShowCategory::All;
+            self.search_term = existing_show.name.to_string();
+
+            self.recalculate_ui_shows();
+            return;
+        }
+
         self.shows_db.add(&show);
 
         self.current_category = show.category.into();
@@ -177,7 +190,11 @@ impl ShowsView {
         self.recalculate_ui_shows();
     }
 
-    fn find_categorized_show<'a>(&'a self, show: &DisplayShow) -> Option<(usize, &DisplayShow)> {
+    fn find_categorized_show<'a>(
+        &'a self,
+        show: &DisplayShow,
+        category_avoid: Option<usize>,
+    ) -> Option<(usize, &DisplayShow)> {
         let show_finder = |shows: &'a Vec<DisplayShow>| -> Option<(usize, &'a DisplayShow)> {
             match shows.binary_search(show) {
                 Ok(idx) => Some((idx, &shows[idx])),
@@ -185,10 +202,19 @@ impl ShowsView {
             }
         };
 
-        match self.current_category {
-            UiShowCategory::All => {
+        match (self.current_category, category_avoid) {
+            (UiShowCategory::All, None) => {
                 // The show could be in any of the 3 categories
                 self.categorized_shows.iter().find_map(show_finder)
+            }
+            (_, Some(avoid)) => {
+                // The show could be in any of the 2 remaining categories
+                self.categorized_shows
+                    .iter()
+                    .enumerate()
+                    .filter(|&(index, _)| index != avoid)
+                    .map(|(_, shows)| shows)
+                    .find_map(show_finder)
             }
             _ => show_finder(&self.categorized_shows[self.current_category as usize]),
         }
@@ -197,7 +223,8 @@ impl ShowsView {
     pub fn update(&mut self, ui_index: usize) {
         let show = self.ui_shows[ui_index].to_owned();
 
-        let Some((categorized_index, categorized_show)) = self.find_categorized_show(&show) else {
+        let Some((categorized_index, categorized_show)) = self.find_categorized_show(&show, None)
+        else {
             return;
         };
 
@@ -223,7 +250,7 @@ impl ShowsView {
     pub fn remove(&mut self, ui_index: usize) {
         let show = self.ui_shows.remove(ui_index);
 
-        if let Some((categorized_index, show)) = self.find_categorized_show(&show) {
+        if let Some((categorized_index, show)) = self.find_categorized_show(&show, None) {
             let show = self.categorized_shows[show.category as usize].remove(categorized_index);
             self.shows_db.remove(&show);
         }
