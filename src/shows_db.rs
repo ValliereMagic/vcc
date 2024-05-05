@@ -85,7 +85,7 @@ impl ShowsDb {
     }
 
     pub fn load_all_shows(&self) -> impl Iterator<Item = DisplayShow> + '_ {
-        let load_query = "SELECT * FROM Shows ORDER BY category, name";
+        let load_query = "SELECT * FROM Shows ORDER BY category, name COLLATE NOCASE";
 
         self.connection
             .prepare(load_query)
