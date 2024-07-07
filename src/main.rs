@@ -10,7 +10,11 @@ use shows_view::{ShowsView, UiShowCategory};
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
-    eframe::run_native("vcc", native_options, Box::new(|_| Box::new(Vcc::new())))
+    eframe::run_native(
+        "vcc",
+        native_options,
+        Box::new(|_| Ok(Box::new(Vcc::new()))),
+    )
 }
 
 const NUMBER_LABEL_WIDTH: f32 = 40f32;
