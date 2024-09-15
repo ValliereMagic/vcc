@@ -190,7 +190,7 @@ impl ShowsView {
         &'a self,
         show: &DisplayShow,
         add_category: Option<usize>,
-    ) -> Result<(usize, &DisplayShow), usize> {
+    ) -> Result<(usize, &'a DisplayShow), usize> {
         let show_finder = |shows: &'a Vec<DisplayShow>| -> Result<(usize, &DisplayShow), usize> {
             match shows.binary_search(show) {
                 Ok(idx) => Ok((idx, &shows[idx])),
