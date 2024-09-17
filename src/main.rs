@@ -3,7 +3,6 @@
 mod show;
 mod shows_db;
 mod shows_view;
-use std::i64;
 
 use show::{AdderShow, ShowCategory};
 use shows_view::{ShowsView, UiShowCategory};
@@ -146,7 +145,7 @@ impl Vcc {
 
                 ui.horizontal(|ui| {
                     ui.label("Name: ");
-                    ui.label(&*show.name);
+                    ui.label(show.name().as_str());
                 });
 
                 ui.horizontal(|ui| {

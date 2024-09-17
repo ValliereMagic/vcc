@@ -1,4 +1,6 @@
-use std::{cmp::Ordering, rc::Rc};
+use std::cmp::Ordering;
+
+use strumbra::SharedString;
 
 #[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub enum ShowCategory {
@@ -55,7 +57,22 @@ impl Default for AdderShow {
     }
 }
 
-pub type DisplayShow = Show<Rc<String>>;
+#[derive(Clone)]
+pub struct SearchableName {
+    lower_name: SharedString,
+    name: SharedString,
+}
+
+impl SearchableName {
+    pub fn new(name: String) -> Self {
+        SearchableName {
+            lower_name: SharedString::try_from(name.to_lowercase()).unwrap(),
+            name: SharedString::try_from(name).unwrap(),
+        }
+    }
+}
+
+pub type DisplayShow = Show<SearchableName>;
 
 impl DisplayShow {
     pub fn new(
@@ -65,7 +82,7 @@ impl DisplayShow {
         category: ShowCategory,
     ) -> DisplayShow {
         Show {
-            name: Rc::new(name),
+            name: SearchableName::new(name),
             season_number,
             episodes_seen,
             category,
@@ -85,22 +102,19 @@ impl DisplayShow {
             category,
         )
     }
-}
 
-impl Default for DisplayShow {
-    fn default() -> Self {
-        Self {
-            name: Default::default(),
-            season_number: Default::default(),
-            episodes_seen: Default::default(),
-            category: Default::default(),
-        }
+    pub fn name(&self) -> &SharedString {
+        &self.name.name
+    }
+
+    pub fn lower_name(&self) -> &SharedString {
+        &self.name.lower_name
     }
 }
 
 impl Ord for DisplayShow {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.name.to_lowercase().cmp(&other.name.to_lowercase())
+        self.lower_name().cmp(other.lower_name())
     }
 }
 

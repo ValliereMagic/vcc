@@ -37,7 +37,7 @@ impl ShowsDb {
         statement
             .bind::<&[(_, sqlite::Value)]>(
                 &[
-                    (1, (*(show.name)).to_owned().into()),
+                    (1, (*(show.name().as_str())).to_owned().into()),
                     (2, show.season_number.to_owned().into()),
                     (3, show.episodes_seen.to_owned().into()),
                     (4, (show.category as i64).into()),
@@ -56,7 +56,7 @@ impl ShowsDb {
             .prepare(remove_query)
             .expect("Unable to prepare show delete query.");
         statement
-            .bind::<&[(_, sqlite::Value)]>(&[(1, (*(show.name)).to_owned().into())][..])
+            .bind::<&[(_, sqlite::Value)]>(&[(1, (*(show.name().as_str())).to_owned().into())][..])
             .expect("Unable to bind values to query.");
 
         while statement.next().expect("Error deleting show.") != sqlite::State::Done {}
@@ -76,7 +76,7 @@ impl ShowsDb {
                     (1, show.season_number.to_owned().into()),
                     (2, show.episodes_seen.to_owned().into()),
                     (3, (show.category as i64).into()),
-                    (4, (*(show.name)).to_owned().into()),
+                    (4, (*(show.name().as_str())).to_owned().into()),
                 ][..],
             )
             .expect("Unable to bind values to query.");

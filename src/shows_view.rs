@@ -1,6 +1,7 @@
 use std::{iter::Zip, ops::RangeFrom, slice::IterMut};
 
 use memchr::memmem;
+use strumbra::UniqueString;
 
 use crate::{
     show::{AdderShow, CategorizedShows, DisplayShow, ShowCategory},
@@ -92,8 +93,9 @@ impl ShowsView {
                 self.categorized_shows.iter().flatten().cloned().collect()
             }
             (_, false) => {
-                let lower_search_term = self.search_term.to_lowercase();
-                let searcher = memmem::Finder::new(&lower_search_term);
+                let lower_search_term =
+                    UniqueString::try_from(self.search_term.to_lowercase()).unwrap();
+                let searcher = memmem::Finder::new(lower_search_term.as_bytes());
 
                 type DisplayShowIter<'a> = Box<dyn Iterator<Item = &'a DisplayShow> + 'a>;
                 match self.current_category {
@@ -105,7 +107,7 @@ impl ShowsView {
                 }
                 .filter_map(|show| {
                     searcher
-                        .find(show.name.to_lowercase().as_bytes())
+                        .find(show.lower_name().as_bytes())
                         .map(|_| show.to_owned())
                 })
                 .collect()
@@ -170,7 +172,7 @@ impl ShowsView {
                 let existing_show = existing_show.to_owned();
 
                 self.current_category = UiShowCategory::All;
-                self.search_term = existing_show.name.to_string();
+                self.search_term = existing_show.name().as_str().to_owned();
 
                 self.recalculate_ui_shows();
                 return;
