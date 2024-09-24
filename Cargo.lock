@@ -2181,7 +2181,7 @@ dependencies = [
 
 [[package]]
 name = "vcc"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "egui",
  "egui_winit_vulkano",
