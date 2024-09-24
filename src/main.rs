@@ -4,16 +4,97 @@ mod show;
 mod shows_db;
 mod shows_view;
 
+use egui_winit_vulkano::{Gui, GuiConfig};
+
+use vulkano_util::{
+    context::{VulkanoConfig, VulkanoContext},
+    window::{VulkanoWindows, WindowDescriptor},
+};
+
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::EventLoop,
+};
+
 use show::{AdderShow, ShowCategory};
 use shows_view::{ShowsView, UiShowCategory};
 
-fn main() -> eframe::Result<()> {
-    let native_options = eframe::NativeOptions::default();
-    eframe::run_native(
-        "vcc",
-        native_options,
-        Box::new(|_| Ok(Box::new(Vcc::new()))),
-    )
+fn main() {
+    // Winit event loop
+    let event_loop = EventLoop::new().unwrap();
+    // Vulkano context
+    let context = VulkanoContext::new(VulkanoConfig::default());
+    // Vulkano windows (create one)
+    let mut windows = VulkanoWindows::default();
+    windows.create_window(&event_loop, &context, &WindowDescriptor::default(), |ci| {
+        ci.image_format = vulkano::format::Format::B8G8R8A8_UNORM;
+        ci.min_image_count = ci.min_image_count.max(2);
+    });
+    // Create gui as main render pass (no overlay means it clears the image each frame)
+    let mut gui = {
+        let renderer = windows.get_primary_renderer_mut().unwrap();
+        Gui::new(
+            &event_loop,
+            renderer.surface(),
+            renderer.graphics_queue(),
+            renderer.swapchain_format(),
+            GuiConfig::default(),
+        )
+    };
+
+    // Application state
+    let mut vcc = Vcc::new();
+
+    event_loop
+        .run(move |event, window| {
+            let renderer = windows.get_primary_renderer_mut().unwrap();
+            match event {
+                Event::WindowEvent { event, window_id } if window_id == renderer.window().id() => {
+                    // Update Egui integration so the UI works!
+                    let _pass_events_to_game = !gui.update(&event);
+                    match event {
+                        WindowEvent::Resized(_) => {
+                            renderer.resize();
+                        }
+                        WindowEvent::ScaleFactorChanged { .. } => {
+                            renderer.resize();
+                        }
+                        WindowEvent::CloseRequested => {
+                            window.exit();
+                        }
+                        WindowEvent::RedrawRequested => {
+                            // Set immediate UI in redraw here
+                            gui.immediate_ui(|gui| {
+                                vcc.draw_gui(gui);
+                            });
+                            // Render UI
+                            // Acquire swapchain future
+                            match renderer
+                                .acquire(Some(std::time::Duration::from_millis(10)), |_| {})
+                            {
+                                Ok(future) => {
+                                    // Render gui
+                                    let after_future =
+                                        gui.draw_on_image(future, renderer.swapchain_image_view());
+                                    // Present swapchain
+                                    renderer.present(after_future, true);
+                                }
+                                Err(vulkano::VulkanError::OutOfDate) => {
+                                    renderer.resize();
+                                }
+                                Err(e) => panic!("Failed to acquire swapchain future: {}", e),
+                            };
+                        }
+                        _ => (),
+                    }
+                }
+                Event::AboutToWait => {
+                    renderer.window().request_redraw();
+                }
+                _ => (),
+            }
+        })
+        .unwrap();
 }
 
 const NUMBER_LABEL_WIDTH: f32 = 40f32;
@@ -33,6 +114,19 @@ impl Vcc {
             adder: Default::default(),
             accumulated_modifications: Default::default(),
         }
+    }
+
+    fn draw_gui(&mut self, gui: &mut Gui) {
+        let ctx = gui.context();
+        egui::CentralPanel::default().show(&ctx, |ui| {
+            self.search_page(ui);
+            self.rows(ui);
+            self.add(ui);
+
+            for modification in self.accumulated_modifications.drain(..) {
+                modification(&mut self.shows);
+            }
+        });
     }
 
     fn search_page(&mut self, ui: &mut egui::Ui) {
@@ -330,19 +424,5 @@ impl Vcc {
                 }));
             self.adder.clear();
         }
-    }
-}
-
-impl eframe::App for Vcc {
-    fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            self.search_page(ui);
-            self.rows(ui);
-            self.add(ui);
-
-            for modification in self.accumulated_modifications.drain(..) {
-                modification(&mut self.shows);
-            }
-        });
     }
 }
