@@ -2128,7 +2128,7 @@ dependencies = [
 
 [[package]]
 name = "vcc"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "egui_winit_vulkano",
  "memchr",
