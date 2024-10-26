@@ -1,6 +1,6 @@
 use crate::show::{AdderShow, ShowCategory};
 use crate::shows_view::{ShowsView, UiShowCategory};
-use egui_winit_vulkano::Gui;
+use egui_winit_vulkano::{egui, Gui};
 
 const NUMBER_LABEL_WIDTH: f32 = 40f32;
 const TEXT_LABEL_WIDTH: f32 = 125f32;

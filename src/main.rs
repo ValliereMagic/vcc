@@ -7,7 +7,7 @@ mod ui_painter;
 
 use ui_painter::Vcc;
 
-use egui_winit_vulkano::{Gui, GuiConfig};
+use egui_winit_vulkano::{vulkano, vulkano_util, winit, Gui, GuiConfig};
 
 use vulkano_util::{
     context::{VulkanoConfig, VulkanoContext},
