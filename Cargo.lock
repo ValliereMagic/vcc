@@ -1925,9 +1925,9 @@ dependencies = [
 
 [[package]]
 name = "strumbra"
-version = "0.4.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74da746a964d10b4a1b9693b3bccfe49b193dfc590d4191c6ba2e3e313841335"
+checksum = "58b06e3f8b6b77cc6d6b481ae6a69f5043c9186bc837b0618624e3453a29708a"
 
 [[package]]
 name = "subslice_index"
@@ -2128,7 +2128,7 @@ dependencies = [
 
 [[package]]
 name = "vcc"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "egui_winit_vulkano",
  "memchr",

@@ -1,6 +1,6 @@
 [package]
 name = "vcc"
-version = "0.13.0"
+version = "0.13.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -10,7 +10,7 @@ subslice_index = "=0.5.0"
 egui_winit_vulkano = { git = "https://github.com/ValliereMagic/egui_winit_vulkano" }
 memchr = "2.7"
 sqlite = "0.36"
-strumbra = "0.4.1"
+strumbra = "0.5"
 
 [profile.release]
 opt-level = 3
