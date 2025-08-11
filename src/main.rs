@@ -95,7 +95,7 @@ impl ApplicationHandler for VccApplication {
                 });
                 // Render UI
                 // Acquire swapchain future
-                match renderer.acquire(Some(std::time::Duration::from_millis(10)), |_| {}) {
+                match renderer.acquire(Some(std::time::Duration::from_millis(1000)), |_| {}) {
                     Ok(future) => {
                         // Render gui
                         let after_future = self
