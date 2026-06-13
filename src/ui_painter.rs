@@ -1,6 +1,6 @@
 use crate::show::{AdderShow, ShowCategory};
 use crate::shows_view::{ShowsView, UiShowCategory};
-use egui_winit_vulkano::{egui, Gui};
+use eframe::egui;
 
 const NUMBER_LABEL_WIDTH: f32 = 40f32;
 const TEXT_LABEL_WIDTH: f32 = 125f32;
@@ -22,9 +22,8 @@ impl Vcc {
         }
     }
 
-    pub fn paint_ui(&mut self, gui: &mut Gui) {
-        let ctx = gui.context();
-        egui::CentralPanel::default().show(&ctx, |ui| {
+    pub fn paint_ui(&mut self, ui: &mut egui::Ui) {
+        egui::CentralPanel::default().show_inside(ui, |ui| {
             self.search_page(ui);
             self.rows(ui);
             self.add(ui);
