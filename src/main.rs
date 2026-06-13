@@ -28,7 +28,7 @@ impl eframe::App for VccApplication {
 
 pub fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_title("vcc"),
+        viewport: egui::ViewportBuilder::default(),
         ..Default::default()
     };
 
