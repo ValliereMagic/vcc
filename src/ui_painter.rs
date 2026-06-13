@@ -52,7 +52,7 @@ impl Vcc {
             let category_label = ui.label("Category: ");
 
             if ui
-                .add(egui::SelectableLabel::new(
+                .add(egui::Button::selectable(
                     *self.shows.current_category() == UiShowCategory::Watching,
                     "Watching",
                 ))
@@ -64,7 +64,7 @@ impl Vcc {
             }
 
             if ui
-                .add(egui::SelectableLabel::new(
+                .add(egui::Button::selectable(
                     *self.shows.current_category() == UiShowCategory::PlanToWatch,
                     "Plan to Watch",
                 ))
@@ -76,7 +76,7 @@ impl Vcc {
             }
 
             if ui
-                .add(egui::SelectableLabel::new(
+                .add(egui::Button::selectable(
                     *self.shows.current_category() == UiShowCategory::Completed,
                     "Completed",
                 ))
@@ -88,7 +88,7 @@ impl Vcc {
             }
 
             if ui
-                .add(egui::SelectableLabel::new(
+                .add(egui::Button::selectable(
                     *self.shows.current_category() == UiShowCategory::All,
                     "All",
                 ))
