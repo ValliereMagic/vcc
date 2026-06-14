@@ -1,7 +1,7 @@
 use crate::show::*;
 
 pub struct ShowsDb {
-    connection: sqlite::Connection,
+    connection: rusqlite::Connection,
 }
 
 impl ShowsDb {
@@ -16,18 +16,17 @@ impl ShowsDb {
         let vcc_db_path = format!("{}/.local/share/vcc", home_path);
         std::fs::create_dir_all(&vcc_db_path).expect("Unable to create VCC Database directory.");
 
-        let connection = sqlite::open(format!("{}/shows.db", vcc_db_path)) //sqlite::open("./shows.db")
+        let connection = rusqlite::Connection::open(format!("{}/shows.db", vcc_db_path)) //sqlite::open("./shows.db")
             .expect("Unable to Find show database.");
         connection
-            .execute(show_schema)
+            .execute(show_schema, rusqlite::params![])
             .expect("Unable to create initial table.");
 
         ShowsDb { connection }
     }
 
     pub fn add(&self, show: &DisplayShow) {
-        let add_query =
-            "INSERT INTO Shows(name, season_number, episodes_seen, category) VALUES (?, ?, ?, ?)";
+        let add_query = "INSERT INTO Shows(name, season_number, episodes_seen, category) VALUES (?1, ?2, ?3, ?4)";
 
         let mut statement = self
             .connection
@@ -35,71 +34,76 @@ impl ShowsDb {
             .expect("Unable to prepare add query.");
 
         statement
-            .bind::<&[(_, sqlite::Value)]>(
-                &[
-                    (1, (*(show.name().as_str())).to_owned().into()),
-                    (2, show.season_number.to_owned().into()),
-                    (3, show.episodes_seen.to_owned().into()),
-                    (4, (show.category as i64).into()),
-                ][..],
-            )
-            .expect("Unable to bind added values to query.");
-
-        while statement.next().expect("Error adding show.") != sqlite::State::Done {}
+            .execute(rusqlite::params![
+                show.name().as_str(),
+                show.season_number,
+                show.episodes_seen,
+                show.category as i64
+            ])
+            .expect("Unable to insert show.");
     }
 
     pub fn remove(&self, show: &DisplayShow) {
-        let remove_query = "DELETE from Shows WHERE name = ?";
+        let remove_query = "DELETE from Shows WHERE name = ?1";
 
         let mut statement = self
             .connection
             .prepare(remove_query)
             .expect("Unable to prepare show delete query.");
-        statement
-            .bind::<&[(_, sqlite::Value)]>(&[(1, (*(show.name().as_str())).to_owned().into())][..])
-            .expect("Unable to bind values to query.");
 
-        while statement.next().expect("Error deleting show.") != sqlite::State::Done {}
+        statement
+            .execute(rusqlite::params![show.name().as_str()])
+            .expect("Unable to delete show.");
     }
 
     pub fn update(&self, show: &DisplayShow) {
-        let update_query =
-            "UPDATE Shows SET season_number = ?, episodes_seen = ?, category = ? WHERE name = ?";
+        let update_query = "UPDATE Shows SET season_number = ?1, episodes_seen = ?2, category = ?3 WHERE name = ?4";
 
         let mut statement = self
             .connection
             .prepare(update_query)
             .expect("Unable to prepare update query.");
-        statement
-            .bind::<&[(_, sqlite::Value)]>(
-                &[
-                    (1, show.season_number.to_owned().into()),
-                    (2, show.episodes_seen.to_owned().into()),
-                    (3, (show.category as i64).into()),
-                    (4, (*(show.name().as_str())).to_owned().into()),
-                ][..],
-            )
-            .expect("Unable to bind values to query.");
 
-        while statement.next().expect("Error updating show.") != sqlite::State::Done {}
+        statement
+            .execute(rusqlite::params![
+                show.season_number,
+                show.episodes_seen,
+                show.category as i64,
+                show.name().as_str()
+            ])
+            .expect("Unable to update show.");
     }
 
     pub fn load_all_shows(&self) -> impl Iterator<Item = DisplayShow> + '_ {
         let load_query = "SELECT * FROM Shows ORDER BY category, name COLLATE NOCASE";
 
-        self.connection
+        let mut statement = self
+            .connection
             .prepare(load_query)
-            .unwrap()
-            .into_iter()
-            .map(|row| row.expect("Unable to read row."))
-            .map(|row| {
+            .expect("Unable to prepare load query.");
+
+        let rows = statement
+            .query_map([], |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get::<usize, i64>(3)?,
+                ))
+            })
+            .expect("Unable to execute query.")
+            .map(|result| result.expect("Unable to extract row."))
+            .collect::<Vec<_>>();
+
+        rows.into_iter()
+            .map(|(name, season_number, episodes_seen, category)| {
                 DisplayShow::new_numeric(
-                    row.read::<&str, _>("name").to_owned(),
-                    row.read::<i64, _>("season_number"),
-                    row.read::<i64, _>("episodes_seen"),
-                    row.read::<i64, _>("category")
+                    name,
+                    season_number,
+                    episodes_seen,
+                    category
                         .try_into()
-                        .expect("Unable to extract category from the database."),
+                        .expect("Unable to convert numeric category to ShowCategory."),
                 )
             })
     }
