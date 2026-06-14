@@ -8,6 +8,10 @@ impl ShowsDb {
     pub fn new() -> Self {
         let show_schema = "CREATE TABLE IF NOT EXISTS Shows (name TEXT, season_number INTEGER, episodes_seen INTEGER, category INTEGER)";
 
+        let name_index = "CREATE INDEX IF NOT EXISTS idx_shows_name ON Shows (name)";
+
+        let category_index = "CREATE INDEX IF NOT EXISTS idx_shows_category ON Shows (category)";
+
         let home_path = match std::env::var("HOME") {
             Ok(val) => val,
             _ => panic!("Unable to read HOME environment variable."),
@@ -18,9 +22,18 @@ impl ShowsDb {
 
         let connection = rusqlite::Connection::open(format!("{}/shows.db", vcc_db_path)) //sqlite::open("./shows.db")
             .expect("Unable to Find show database.");
+
         connection
             .execute(show_schema, rusqlite::params![])
             .expect("Unable to create initial table.");
+
+        connection
+            .execute(name_index, rusqlite::params![])
+            .expect("Unable to create name index.");
+
+        connection
+            .execute(category_index, rusqlite::params![])
+            .expect("Unable to create category index.");
 
         ShowsDb { connection }
     }
